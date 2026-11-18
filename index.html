@@ -58,7 +58,7 @@
             <h2 id="tree-title">Your scenario</h2>
           </div>
           <div class="canvas-tools">
-            <span class="canvas-hint"><span class="hint-desktop">Drag to explore · Scroll to zoom</span><span class="hint-mobile">Pinch to zoom · Drag to explore</span></span>
+            <span class="canvas-hint"><span class="hint-desktop">Drag to explore · Scroll to zoom</span><span class="hint-mobile">Pinch to zoom · Drag to explore</span><span class="free-depth-hint">Free: 10 levels</span></span>
             <button class="icon-button" type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
             <button class="zoom-value" type="button" data-action="zoom-reset" aria-label="Reset zoom">100%</button>
             <button class="icon-button" type="button" data-action="zoom-in" aria-label="Zoom in">＋</button>
@@ -71,7 +71,7 @@
             <svg class="connections" id="connections" aria-hidden="true"></svg>
             <div class="tree-nodes" id="tree-nodes"></div>
           </div>
-          <div class="canvas-empty-hint hidden" id="canvas-empty-hint">Select a choice to reveal what could happen next.</div>
+          <div class="canvas-empty-hint hidden" id="canvas-empty-hint">Select a choice to reveal what could happen next.</div><div class="generation-overlay hidden" id="generation-overlay" role="status" aria-live="polite"><span class="thinking-orbit" aria-hidden="true"></span><span class="thinking-label">Thinking through possibilities…</span></div>
         </div>
         <div class="workspace-footer">
           <span><span class="status-indicator"></span> <span id="node-count">4 outcomes mapped</span></span>
@@ -83,20 +83,20 @@
     <footer class="site-footer"><span>© 2026 CONSEQO</span><span>Clarity for the choices ahead.</span><span class="footer-free">MADE FOR WHAT'S NEXT <span>✳</span></span></footer>
   </div>
 
-  <div class="modal-backdrop hidden" id="upgrade-modal" role="presentation">
+  <div class="modal-backdrop hidden" id="upgrade-modal" role="presentation" data-action="close-modal">
     <section class="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
       <button class="modal-close icon-button" type="button" data-action="close-modal" aria-label="Close upgrade dialog">×</button>
       <div class="modal-icon" aria-hidden="true">✳</div>
       <div class="eyebrow modal-eyebrow">GO BEYOND THE OBVIOUS</div>
       <h2 id="modal-title">Think without limits.</h2>
-      <p id="modal-description">You've reached the free exploration depth. Unlock Pro to follow every branch and uncover more possibilities.</p>
-      <div class="pro-price"><span>PRO ACCESS</span><strong>150 <span>⭐</span></strong><small>One-time demo price</small></div>
+      <p id="modal-description">You've explored all 10 free levels. Unlock Pro to follow every branch and uncover more possibilities.</p>
+      <div class="pro-price"><span>PRO ACCESS</span><strong>10 <span>⭐</span></strong><small>Demo checkout</small></div>
       <ul class="pro-benefits">
         <li><span>✓</span> Unlimited decision depth</li>
         <li><span>✓</span> Explore every possible branch</li>
         <li><span>✓</span> Keep your thinking flowing</li>
       </ul>
-      <button class="button button-primary unlock-button" type="button" data-action="unlock-pro">Test Unlock Pro (Demo) <span aria-hidden="true">↗</span></button>
+      <button class="button button-primary unlock-button" type="button" data-action="buy-pro">Unlock Pro for 10 Stars <span aria-hidden="true">↗</span></button>
       <p class="modal-footnote">Demo only. No payment will be taken.</p>
     </section>
   </div>
