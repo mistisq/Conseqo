@@ -69,7 +69,7 @@
   function cleanText(value, max = 180) { return String(value || "").replace(/\s+/g, " ").trim().slice(0, max); }
 
   function makeNode({ title, description, depth, kind = "choice", risk = "Medium", likelihood = "Possible", parentId = null, children = [], branchIndex = 0 }) {
-    return { id: createId(), title, description, depth, kind, risk, likelihood, parentId, children, expanded: false, branchIndex };
+    return { id: createId(), title, description, depth, kind, risk, likelihood, parentId, children, expanded: false, branchIndex, fresh: true };
   }
 
   function createTree(prompt) {
@@ -228,7 +228,7 @@
       elements.connections.append(path);
     }));
     elements.title.textContent = tree.prompt;
-    elements.count.textContent = tree.nodes.length + " nodes mapped";
+    elements.count.textContent = tree.nodes.length + " nodes mapped · Free depth " + FREE_DEPTH_LIMIT;
     elements.emptyHint.classList.toggle("hidden", tree.nodes.length > 1);
     applyView();
   }
