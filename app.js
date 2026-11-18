@@ -2,7 +2,11 @@
   "use strict";
 
   const STORAGE_KEY = "conseqo-state-v1";
-  const FREE_DEPTH_LIMIT = 3;
+  const AI_API_ENDPOINT = "https://conseqo-api.workers.dev/generate";
+  const INVOICE_API_ENDPOINT = "https://conseqo-api.workers.dev/invoice";
+  const DEMO_CHECKOUT_ENABLED = true;
+  const PRO_KEY = "conseqo_pro";
+  const FREE_DEPTH_LIMIT = 10;
   const NODE_WIDTH = 246;
   const ROOT_WIDTH = 290;
   const NODE_GAP_X = 30;
@@ -27,7 +31,7 @@
   function loadState() {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      return { isPro: stored.isPro === true, trees: Array.isArray(stored.trees) ? stored.trees.slice(0, 10) : [], activeTreeId: typeof stored.activeTreeId === "string" ? stored.activeTreeId : null };
+      return { isPro: localStorage.getItem(PRO_KEY) === "true" || stored.isPro === true, trees: Array.isArray(stored.trees) ? stored.trees.slice(0, 10) : [], activeTreeId: typeof stored.activeTreeId === "string" ? stored.activeTreeId : null };
     } catch (error) {
       console.warn("Could not restore Conseqo state.", error);
       return { isPro: false, trees: [], activeTreeId: null };
@@ -35,7 +39,7 @@
   }
 
   function saveState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(PRO_KEY, state.isPro ? "true" : "false"); }
     catch (error) { console.warn("Could not save Conseqo state.", error); showToast("Your browser could not save this session."); }
     updateTier();
   }
@@ -70,9 +74,7 @@
 
   function createTree(prompt) {
     const root = makeNode({ title: cleanText(prompt, 180), description: "Your starting point. Choose a direction to explore how this situation could unfold.", depth: 0, kind: "root", risk: "Starting point", likelihood: "Scenario" });
-    const choices = simulateRootChoices(prompt).map(choice => makeNode({ ...choice, depth: 1, parentId: root.id }));
-    root.children = choices.map(node => node.id);
-    return { id: createId(), prompt: cleanText(prompt, 180), rootId: root.id, nodes: [root, ...choices], createdAt: Date.now() };
+    return { id: createId(), prompt: cleanText(prompt, 180), rootId: root.id, nodes: [root], createdAt: Date.now() };
   }
 
   // Simulation is isolated so a future API adapter can replace it without changing UI logic.
@@ -106,23 +108,32 @@
     return templates[index];
   }
 
+  async function generateNextNodes({ prompt, parent, isRoot }) {
+    if (AI_API_ENDPOINT && !/placeholder|example|workers.dev\\/generate$/i.test(AI_API_ENDPOINT)) {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 4500);
+      try {
+        const response = await fetch(AI_API_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scenario: prompt, parent: { title: parent.title, description: parent.description, depth: parent.depth }, isRoot }), signal: controller.signal });
+        if (response.ok) { const payload = await response.json(); if (Array.isArray(payload.choices) && payload.choices.length >= 2) return payload.choices.slice(0, 3); }
+      } catch (error) { console.info("AI endpoint unavailable; using simulated outcomes.", error); }
+      finally { clearTimeout(timeout); }
+    }
+    return isRoot ? simulateRootChoices(prompt) : simulateConsequences(parent, prompt);
+  }
   function simulateNextChoices(node, prompt) {
-    return simulateConsequences(node, prompt).map((outcome, index) => makeNode({ ...outcome, depth: node.depth + 1, parentId: node.id, branchIndex: index }));
+    return generateNextNodes({ prompt, parent: node, isRoot: false }).then(outcomes => outcomes.map((outcome, index) => makeNode({ ...outcome, depth: node.depth + 1, parentId: node.id, branchIndex: index })));
   }
 
   function getNode(id) { return tree && tree.nodes.find(node => node.id === id); }
 
-  function expandNode(nodeId) {
+  async function expandNode(nodeId) {
     const node = getNode(nodeId);
     if (!node || node.kind === "root" || node.expanded) return;
     if (!state.isPro && node.depth >= FREE_DEPTH_LIMIT) { openUpgrade(); return; }
-    node.expanded = true;
-    const children = simulateNextChoices(node, tree.prompt);
-    node.children = children.map(child => child.id);
-    tree.nodes.push(...children);
-    persistActiveTree();
-    renderTree();
-    showToast("New possibilities added to your map.");
+    pendingExpansions.add(nodeId); $("#generation-overlay").classList.remove("hidden");
+    try { const children = await simulateNextChoices(node, tree.prompt); node.expanded = true; node.children = children.map(child => child.id); tree.nodes.push(...children); persistActiveTree(); renderTree(); showToast("New possibilities added to your map."); }
+    catch (error) { console.error("Branch generation failed.", error); showToast("Could not generate paths. Please try again."); }
+    finally { pendingExpansions.delete(nodeId); $("#generation-overlay").classList.add("hidden"); }
   }
 
   function persistActiveTree() {
@@ -137,7 +148,7 @@
 
   function buildNodeElement(node) {
     const element = document.createElement(node.kind === "root" ? "article" : "button");
-    element.className = "tree-node " + (node.kind === "root" ? "root-node" : "choice-node");
+    element.className = "tree-node " + (node.kind === "root" ? "root-node" : "choice-node") + (node.fresh ? " is-new" : "");
     element.style.left = node.x + "px"; element.style.top = node.y + "px";
     element.dataset.nodeId = node.id;
     if (node.kind !== "root") {
@@ -200,7 +211,7 @@
     if (!tree) return;
     elements.nodes.replaceChildren();
     const bounds = layoutTree();
-    tree.nodes.forEach(node => elements.nodes.append(buildNodeElement(node)));
+    tree.nodes.forEach(node => { elements.nodes.append(buildNodeElement(node)); node.fresh = false; });
     elements.connections.replaceChildren();
     elements.connections.setAttribute("width", String(bounds.width));
     elements.connections.setAttribute("height", String(bounds.height));
@@ -249,10 +260,14 @@
     renderTree(); requestAnimationFrame(fitCanvas);
   }
 
-  function startTree(prompt) {
+  async function startTree(prompt) {
     const text = cleanText(prompt, 500);
     if (!text) { elements.input.focus(); showToast("Describe a situation to get started."); return; }
     tree = createTree(text); persistActiveTree(); showWorkspace();
+    const root = getNode(tree.rootId); $("#generation-overlay").classList.remove("hidden");
+    try { const choices = await generateNextNodes({ prompt: text, parent: root, isRoot: true }); const children = choices.map((choice, index) => makeNode({ ...choice, depth: 1, parentId: root.id, branchIndex: index })); root.children = children.map(child => child.id); tree.nodes.push(...children); persistActiveTree(); renderTree(); requestAnimationFrame(fitCanvas); }
+    catch (error) { console.error("Initial generation failed.", error); showToast("Could not generate initial paths."); }
+    finally { $("#generation-overlay").classList.add("hidden"); }
   }
 
   function newTree() { tree = null; elements.workspace.classList.add("hidden"); elements.welcome.classList.remove("hidden"); elements.input.value = ""; elements.input.focus(); view = { x: 0, y: 0, scale: 1 }; }
@@ -260,10 +275,19 @@
   function openUpgrade() { elements.modal.classList.remove("hidden"); $("[data-action='close-modal']", elements.modal).focus(); }
   function closeUpgrade() { elements.modal.classList.add("hidden"); }
 
-  function unlockPro() {
-    state.isPro = true; saveState(); closeUpgrade();
-    showToast("Pro unlocked for this demo. Explore without limits!"); renderTree();
+  async function buyPro() {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && typeof tg.openInvoice === "function" && INVOICE_API_ENDPOINT && !/placeholder|example|workers.dev\\/invoice$/i.test(INVOICE_API_ENDPOINT)) {
+      try {
+        const response = await fetch(INVOICE_API_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product: "conseqo_pro", stars: 10, initData: tg.initData || "" }) });
+        if (!response.ok) throw new Error("Invoice endpoint failed.");
+        const invoice = await response.json(); if (!invoice.url) throw new Error("Invoice URL missing.");
+        tg.openInvoice(invoice.url, status => { if (status === "paid") unlockPro(); else if (status === "cancelled") showToast("Checkout cancelled."); else showToast("Payment is processing."); }); return;
+      } catch (error) { console.info("Telegram checkout fallback.", error); }
+    }
+    if (DEMO_CHECKOUT_ENABLED) unlockPro(); else showToast("Pro checkout is not configured yet.");
   }
+  function unlockPro() { state.isPro = true; saveState(); closeUpgrade(); showToast("Pro activated. Unlimited depth unlocked."); renderTree(); }
 
   function showToast(message) {
     elements.toast.textContent = message; elements.toast.classList.add("visible");
@@ -277,7 +301,7 @@
       case "example": elements.input.value = element.dataset.prompt || ""; elements.input.focus(); break;
       case "expand-node": expandNode(element.dataset.nodeId); break;
       case "close-modal": closeUpgrade(); break;
-      case "unlock-pro": unlockPro(); break;
+      case "buy-pro": buyPro(); break;
       case "zoom-in": setZoom(view.scale * 1.2); break;
       case "zoom-out": setZoom(view.scale / 1.2); break;
       case "zoom-reset": view = { x: 0, y: 0, scale: 1 }; applyView(); break;
