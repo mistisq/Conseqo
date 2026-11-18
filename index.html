@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090c12">
+  <meta name="description" content="Explore decisions and the consequences they create with Conseqo.">
+  <title>Conseqo — See where choices lead</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="ConseQo home" data-action="home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>CONSEQO</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="button button-quiet new-tree-button" type="button" data-action="new-tree"><span aria-hidden="true">＋</span> <span>New Tree</span></button>
+        <button class="tier-pill" type="button" data-action="upgrade" aria-label="Free plan. View Pro upgrade">
+          <span class="tier-dot"></span><span data-tier-label>Free</span><span class="tier-divider">/</span><span class="tier-pro">Pro ⭐</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="welcome" id="welcome">
+        <div class="eyebrow"><span class="eyebrow-line"></span> THINK A FEW STEPS AHEAD</div>
+        <h1>Every choice leads <span>somewhere.</span></h1>
+        <p class="welcome-copy">Map the possibilities. See the trade-offs. Choose your next move with clarity.</p>
+        <form class="scenario-form" id="scenario-form">
+          <label class="sr-only" for="scenario-input">Describe your situation or dilemma</label>
+          <textarea id="scenario-input" name="scenario" rows="3" maxlength="500" placeholder="What decision is on your mind?" required></textarea>
+          <div class="form-footer">
+            <span class="input-hint"><span class="sparkle">✳</span> Start with a situation, decision, or what if…</span>
+            <button class="button button-primary submit-button" type="submit"><span>Explore outcomes</span><span aria-hidden="true">↗</span></button>
+          </div>
+        </form>
+        <div class="examples">
+          <span class="examples-label">NEED A STARTING POINT?</span>
+          <div class="example-list">
+            <button class="example-chip" type="button" data-action="example" data-prompt="Should I accept a new job in another city?">💼 <span>Change careers</span></button>
+            <button class="example-chip" type="button" data-action="example" data-prompt="I want to launch a small online business while keeping my current job.">🚀 <span>Start a side project</span></button>
+            <button class="example-chip" type="button" data-action="example" data-prompt="Should I have an honest conversation with a friend about a growing disagreement?">💬 <span>Have a difficult talk</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace hidden" id="workspace" aria-label="Decision tree workspace">
+        <div class="workspace-heading">
+          <div class="workspace-title-wrap">
+            <span class="eyebrow"><span class="eyebrow-line"></span> YOUR DECISION MAP</span>
+            <h2 id="tree-title">Your scenario</h2>
+          </div>
+          <div class="canvas-tools">
+            <span class="canvas-hint"><span class="hint-desktop">Drag to explore · Scroll to zoom</span><span class="hint-mobile">Pinch to zoom · Drag to explore</span></span>
+            <button class="icon-button" type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
+            <button class="zoom-value" type="button" data-action="zoom-reset" aria-label="Reset zoom">100%</button>
+            <button class="icon-button" type="button" data-action="zoom-in" aria-label="Zoom in">＋</button>
+            <button class="icon-button fit-button" type="button" data-action="fit" aria-label="Fit tree to screen">⤢</button>
+          </div>
+        </div>
+        <div class="canvas-viewport" id="canvas-viewport" aria-label="Interactive decision tree canvas">
+          <div class="canvas-grid" aria-hidden="true"></div>
+          <div class="canvas-world" id="canvas-world">
+            <svg class="connections" id="connections" aria-hidden="true"></svg>
+            <div class="tree-nodes" id="tree-nodes"></div>
+          </div>
+          <div class="canvas-empty-hint hidden" id="canvas-empty-hint">Select a choice to reveal what could happen next.</div>
+        </div>
+        <div class="workspace-footer">
+          <span><span class="status-indicator"></span> <span id="node-count">4 outcomes mapped</span></span>
+          <span class="footer-note">Simulated possibilities · Not predictions</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>© 2026 CONSEQO</span><span>Clarity for the choices ahead.</span><span class="footer-free">MADE FOR WHAT'S NEXT <span>✳</span></span></footer>
+  </div>
+
+  <div class="modal-backdrop hidden" id="upgrade-modal" role="presentation">
+    <section class="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+      <button class="modal-close icon-button" type="button" data-action="close-modal" aria-label="Close upgrade dialog">×</button>
+      <div class="modal-icon" aria-hidden="true">✳</div>
+      <div class="eyebrow modal-eyebrow">GO BEYOND THE OBVIOUS</div>
+      <h2 id="modal-title">Think without limits.</h2>
+      <p id="modal-description">You've reached the free exploration depth. Unlock Pro to follow every branch and uncover more possibilities.</p>
+      <div class="pro-price"><span>PRO ACCESS</span><strong>150 <span>⭐</span></strong><small>One-time demo price</small></div>
+      <ul class="pro-benefits">
+        <li><span>✓</span> Unlimited decision depth</li>
+        <li><span>✓</span> Explore every possible branch</li>
+        <li><span>✓</span> Keep your thinking flowing</li>
+      </ul>
+      <button class="button button-primary unlock-button" type="button" data-action="unlock-pro">Test Unlock Pro (Demo) <span aria-hidden="true">↗</span></button>
+      <p class="modal-footnote">Demo only. No payment will be taken.</p>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
